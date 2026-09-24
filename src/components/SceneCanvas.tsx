@@ -7,7 +7,7 @@ type SceneCanvasProps = {
   projects: Project[]
   environment: EnvironmentState
   reducedMotion: boolean
-  scrollProgress: number
+  scrollProgressRef: { current: number }
   activeProjectId: string | null
   onProjectSelect: (project: Project) => void
 }
@@ -32,21 +32,16 @@ export function SceneCanvas({
   projects,
   environment,
   reducedMotion,
-  scrollProgress,
+  scrollProgressRef,
   activeProjectId,
   onProjectSelect,
 }: SceneCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const scrollRef = useRef(scrollProgress)
   const environmentRef = useRef(environment)
   const reducedMotionRef = useRef(reducedMotion)
   const activeProjectRef = useRef(activeProjectId)
   const hoveredIdRef = useRef<string | null>(null)
   const [webglAvailable, setWebglAvailable] = useState(true)
-
-  useEffect(() => {
-    scrollRef.current = scrollProgress
-  }, [scrollProgress])
 
   useEffect(() => {
     environmentRef.current = environment
@@ -353,7 +348,7 @@ export function SceneCanvas({
     const render = () => {
       if (isVisible && !contextLost) {
         const elapsed = clock.getElapsedTime()
-        const progress = scrollRef.current
+        const progress = scrollProgressRef.current
         const state = environmentRef.current
         const still = reducedMotionRef.current
         const activeId = activeProjectRef.current
@@ -427,7 +422,7 @@ export function SceneCanvas({
       disposeObject(stars)
       renderer.dispose()
     }
-  }, [onProjectSelect, projects])
+  }, [onProjectSelect, projects, scrollProgressRef])
 
   return (
     <div className="scene-layer" aria-hidden="true">

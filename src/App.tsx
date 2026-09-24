@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { Icon } from './components/Icons'
 import { ProjectGlyph, ProjectModal } from './components/ProjectModal'
 import { capabilities, projects, stackGroups, type Project } from './data/projects'
@@ -19,23 +19,38 @@ function App() {
   const environment = useLocalTime()
   const reducedMotion = useReducedMotion()
   const [activeSection, setActiveSection] = useState('home')
-  const [scrollProgress, setScrollProgress] = useState(0)
   const [isScrolled, setIsScrolled] = useState(false)
+  const scrollProgressRef = useRef(0)
+  const shellRef = useRef<HTMLDivElement | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [selectedProject, setSelectedProject] = useState<Project | null>(null)
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
-    const handleScroll = () => {
+    let frame = 0
+    const update = () => {
+      frame = 0
       const maxScroll = document.documentElement.scrollHeight - window.innerHeight
-      setScrollProgress(maxScroll > 0 ? Math.min(window.scrollY / maxScroll, 1) : 0)
-      setIsScrolled(window.scrollY > 24)
+      const progress = maxScroll > 0 ? Math.min(window.scrollY / maxScroll, 1) : 0
+      scrollProgressRef.current = progress
+      shellRef.current?.style.setProperty('--scroll-progress', String(progress))
+      setIsScrolled((previous) => {
+        const next = window.scrollY > 24
+        return previous === next ? previous : next
+      })
+    }
+    const handleScroll = () => {
+      if (frame) return
+      frame = window.requestAnimationFrame(update)
     }
 
-    handleScroll()
+    update()
     window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => window.removeEventListener('scroll', handleScroll)
+    return () => {
+      window.removeEventListener('scroll', handleScroll)
+      if (frame) window.cancelAnimationFrame(frame)
+    }
   }, [])
 
   useEffect(() => {
@@ -91,11 +106,10 @@ function App() {
     '--sky-top': environment.skyTop,
     '--sky-bottom': environment.skyBottom,
     '--horizon': environment.horizon,
-    '--scroll-progress': scrollProgress,
-  } as CSSProperties), [environment, scrollProgress])
+  } as CSSProperties), [environment])
 
   return (
-    <div className={`app-shell phase-${environment.phase}${isScrolled ? ' is-scrolled' : ''}`} style={shellStyle} data-phase={environment.phase}>
+    <div ref={shellRef} className={`app-shell phase-${environment.phase}${isScrolled ? ' is-scrolled' : ''}`} style={shellStyle} data-phase={environment.phase}>
       <a className="skip-link" href="#main-content">Skip to content</a>
       <div className="top-rule" />
       <header className="site-header">
@@ -138,7 +152,7 @@ function App() {
           projects={projects}
           environment={environment}
           reducedMotion={reducedMotion}
-          scrollProgress={scrollProgress}
+          scrollProgressRef={scrollProgressRef}
           activeProjectId={activeProjectId}
           onProjectSelect={handleProjectSelect}
         />
