@@ -1,0 +1,9 @@
+{
+  "name": "Aster — Independent engineering practice",
+  "short_name": "Aster",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#071013",
+  "theme_color": "#091113",
+  "description": "A portfolio for thoughtful software, spatial interfaces, and useful systems."
+}
